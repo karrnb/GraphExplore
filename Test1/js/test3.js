@@ -20,6 +20,19 @@ var tip = d3.tip()
 })
 svg.call(tip);
 
+var zoom_handler = d3.zoom()
+    .on("zoom", zoom_actions);
+
+	svg.call(zoom_handler);
+  //zoom_handler(svg);
+
+  function zoom_actions(){
+      //g.attr("transform", d3.event.transform);
+	  var transform = d3.zoomTransform(this);
+	  svg.attr("transform", "scale(" + transform.k + ")");
+	  //svg.attr("transform", "translate(" + transform.x + "," + transform.y + ") scale(" + transform.k + ")");
+  }
+  
 var color = d3.scaleOrdinal(d3.schemeCategory20);
 
 var simulation = d3.forceSimulation()
@@ -79,14 +92,7 @@ d3.json("../data/cities.json", function(error, graph) {
   var g = svg.append("g")
     .attr("class", "everything");
 
-  var zoom_handler = d3.zoom()
-    .on("zoom", zoom_actions);
-
-  zoom_handler(svg);
-
-  function zoom_actions(){
-      g.attr("transform", d3.event.transform)
-  }
+  
 
   // function zoom_actions(){
   //   g.attr("transform", d3.event.transform)
