@@ -21,20 +21,33 @@ circle {
     stroke: #fff;
     stroke-width: 1.5px;
 }
-line.selected  {
-    stroke: #4f4;
-	stroke-opacity: .9;
-	stroke-width:2px;
-}
+
+
 circle.selected  {
     stroke: #4f4;
 	stroke-opacity: .9;
 	stroke-width:2px;
 }
+circle.not-selected  {
+    stroke: #fff;
+	stroke-opacity: .3;
+	fill-opacity: .3;
+	stroke-width:2px;
+}
+line.selected  {
+    stroke: #4f4;
+	stroke-opacity: .9;
+	stroke-width:2px;
+}
+
 line.neighbor {
     stroke: #090;
 	stroke-opacity: .4;
 	stroke-width:1px;
+}
+line.not-selected  {
+    stroke: #999;
+    stroke-opacity: 0.3;
 }
 #chart {
         position: fixed;
