@@ -13,6 +13,17 @@ d3-tip {
     color: black;
 }
 
+.selected {
+    stroke: #4f4;
+	stroke-opacity: .9;
+	stroke-width:2px;
+}
+.neighbor {
+    stroke: #090;
+	stroke-opacity: .6;
+	stroke-width:1px;
+}
+
 .link line {
     stroke: #999;
     stroke-opacity: 0.6;
