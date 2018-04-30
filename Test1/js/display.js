@@ -11,20 +11,29 @@ function highlightPath(path)
       }
     }
     nodeSelection.each(function(d,i) {
-      if(d.id in highlight.nodes){this.classList.add("selected");}
-      else{this.classList.remove("selected");}
+      if(d.id in highlight.nodes){this.classList.add("selected");this.classList.remove("not-selected");}
+      else{this.classList.remove("selected");this.classList.add("not-selected");}
     });
     linkSelection.each(function(d,i) {
       if(d.index in highlight.links){
-        this.classList.add("selected");this.classList.remove("neighbor");
+        this.classList.add("selected");this.classList.remove("neighbor");this.classList.remove("not-selected");
       }
       else{
         this.classList.remove("selected");
         if((d.source.id in highlight.nodes)||(d.target.id in highlight.nodes)){
-          this.classList.add("neighbor");
+          this.classList.add("neighbor");this.classList.remove("not-selected");
         }
-        else{this.classList.remove("neighbor");}
+        else{this.classList.remove("neighbor");this.classList.add("not-selected");}
       }
 
     });
   }
+function clearPath(path){
+	nodeSelection.each(function(d,i) {
+		this.classList.remove("selected");
+		this.classList.remove("not-selected");
+    });
+    linkSelection.each(function(d,i) {
+        this.classList.remove("selected");this.classList.remove("neighbor");this.classList.remove("not-selected");
+      });
+}
