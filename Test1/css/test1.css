@@ -1,0 +1,27 @@
+.links line {
+    stroke: #999;
+    stroke-opacity: 0.6;
+}
+
+.nodes circle {
+    stroke: #fff;
+    stroke-width: 1.5px;
+}
+
+d3-tip {
+    line-height: 1;
+    color: black;
+}
+
+.link line {
+    stroke: #999;
+    stroke-opacity: 0.6;
+}
+
+#chart {
+        position: fixed;
+        left: 0px;
+        right: 0px;
+        top: 0px;
+        bottom: 0px;
+      }
