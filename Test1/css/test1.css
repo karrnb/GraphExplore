@@ -13,22 +13,29 @@ d3-tip {
     color: black;
 }
 
-.selected {
+line {
+    stroke: #999;
+    stroke-opacity: 0.6;
+}
+circle {
+    stroke: #fff;
+    stroke-width: 1.5px;
+}
+line.selected  {
     stroke: #4f4;
 	stroke-opacity: .9;
 	stroke-width:2px;
 }
-.neighbor {
+circle.selected  {
+    stroke: #4f4;
+	stroke-opacity: .9;
+	stroke-width:2px;
+}
+line.neighbor {
     stroke: #090;
-	stroke-opacity: .6;
+	stroke-opacity: .4;
 	stroke-width:1px;
 }
-
-.link line {
-    stroke: #999;
-    stroke-opacity: 0.6;
-}
-
 #chart {
         position: fixed;
         left: 0px;

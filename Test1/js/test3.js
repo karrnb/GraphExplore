@@ -23,16 +23,26 @@ svg.call(tip);
 var color = d3.scaleOrdinal(d3.schemeCategory20);
 
 var simulation = d3.forceSimulation()
-    .force("link", d3.forceLink().id(function(d) { return d.id; }))
-    .force("charge", d3.forceManyBody())
+    .force("link", d3.forceLink().id(function(d) { return d.id; }).distance(5))
+    .force("charge", d3.forceManyBody().strength(-5))
     .force("center", d3.forceCenter(width / 2, height / 2));
 
-
+var mygraph,nodeSelection,linkSelection;
 
 d3.json("../data/cities.json", function(error, graph) {
 // d3.csv("../data/road_data.csv", function(error, graph) {
   if (error) throw error;
-
+  mygraph=graph;
+  var nodeMap={};mygraph.nodeMap=nodeMap;
+    for(var i=0;i<graph.nodes.length;i++){
+        graph.nodes[i].edges={};nodeMap[graph.nodes[i].id]= graph.nodes[i];
+    }
+    for(var i=0;i<graph.links.length;i++){
+        var link=graph.links[i];
+		graph.nodeMap[link.source].edges[link.target]=link; //keys i edges are the nodes' id, not index
+		graph.nodeMap[link.target].edges[link.source]=link; 
+    }
+	
   var link = svg.append("g")
       .attr("class", "links")
     .selectAll("line")
@@ -52,9 +62,10 @@ d3.json("../data/cities.json", function(error, graph) {
           .on("drag", dragged)
           .on("end", dragended))
     .on('dblclick', connectedNodes)
+    .on('click',()=>{highlightPath([23,24])})
     .on('mouseover', tip.show) 
     .on('mouseout', tip.hide); 
-
+  nodeSelection=node,linkSelection=link;
   node.append("title")
       .text(function(d) { return d.id; });
 
@@ -145,7 +156,7 @@ d3.json("../data/cities.json", function(error, graph) {
       toggle = 0;
     }
   }
-
+  
   function shortestPath(graph, start, targets)
   {
     let distances={};
@@ -173,4 +184,6 @@ d3.json("../data/cities.json", function(error, graph) {
       return path;
     }
   }
+  
 });
+  
