@@ -28,7 +28,7 @@ function highlightPath(path)
 
     });
   }
-function clearPath(path){
+function clearPath(){
 	nodeSelection.each(function(d,i) {
 		this.classList.remove("selected");
 		this.classList.remove("not-selected");
