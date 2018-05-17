@@ -1,5 +1,6 @@
 var chartDiv = document.getElementById("chart");
 var svg = d3.select(chartDiv).append("svg");
+svg.append("defs").html('<linearGradient y2="1" x2="0.8" y1="0" x1="0.2" id="gradient-metal"><stop offset="0" style="stop-color:#000"/><stop offset="0.6" style="stop-color:#333"/><stop offset="0.7" style="stop-color:#fff"/><stop offset="0.85" style="stop-color:#666"/><stop offset="0.9" style="stop-color:#aaa"/><stop offset="0.93" style="stop-color:#fff"/><stop offset="1" style="stop-color:#333" /></radialGradient><linearGradient  y2="1" x2="0.8" y1="0" x1="0.2" id="gradient-glass"><stop offset="0" style="stop-color:#5e5"/><stop offset="0.5" style="stop-color:#090"/><stop offset="0.51" style="stop-color:#2a2"/><stop offset="1" style="stop-color:#6d6"/>	</linearGradient> ');
 var width = chartDiv.clientWidth;
 var height = chartDiv.clientHeight;
 
@@ -7,17 +8,36 @@ svg
     .attr("width", width)
     .attr("height", height);
 
+window.onresize=function(){
+	width = chartDiv.clientWidth;
+	height = chartDiv.clientHeight;
+
+	svg
+		.attr("width", width)
+		.attr("height", height);
+		
+	refreshLayout();
+}
 //Set up tooltip
 var tip = d3.tip()
     .attr('class', 'd3-tip')
     .offset([-15, 0])
     .html(function (d) {
-		//detect whether this should be the long version when the user hovers for a long time
-	if(tip.detailed){return  "<h3>"+d.name + "</h3><p>This is the node #"+d.id+" called "+d.name+".</p>";}
-    else{return  d.name + ""};
+		if(d.source){
+			if(tip.detailed){return  "<h3>Link</h3><p>This is the part of "+d.roadname +" between "+d.source.name + " and "+d.target.name+". Its length is "+d.length+" km."+(d.water?" It's on water.":"");}
+				else{return  d.roadname;};
+		}
+		else{
+			//detect whether this should be the long version when the user hovers for a long time
+			//if(tip.detailed){return  "<h3>"+d.name + "</h3><p>This is the city #"+d.id+" called "+d.name+" in "+(d.geoname_id?geonames[d.geoname_id].country_name:"(unknown country)")+".</p>";}
+			if(tip.detailed){return  "<h3>"+d.name + "</h3><p>This is the location #"+d.id+" called "+d.name+(d.countrycode?(" in "+countrycodes[d.countrycode]):"")+".</p>";}
+			else{return  d.name + ""};
+		}
+		
+	
 })
 svg.call(tip);
-
+/*
 var zoom_handler = d3.zoom()
     .on("zoom", zoom_actions);
 
@@ -30,171 +50,111 @@ var zoom_handler = d3.zoom()
 	  svg.attr("transform", "scale(" + transform.k + ")");
 	  //svg.attr("transform", "translate(" + transform.x + "," + transform.y + ") scale(" + transform.k + ")");
   }
-  
+*/
 var color = d3.scaleOrdinal(d3.schemeCategory20);
 
 var simulation = d3.forceSimulation()
     .force("link", d3.forceLink().id(function(d) { return d.id; }).distance(5))
-    .force("charge", d3.forceManyBody().strength(-5))
-    .force("center", d3.forceCenter(width / 2, height / 2));
+    .force("charge", d3.forceManyBody().strength(-5));
+    //.force("center", d3.forceCenter(width / 2, height / 2));
 
-var mygraph,nodeSelection,linkSelection;
+var mygraph,nodeSelection,linkSelection,markerSelection;
 
-d3.json("../data/cities.json", function(error, graph) {
-// d3.csv("../data/road_data.csv", function(error, graph) {
-  if (error) throw error;
-  mygraph=graph;
-  var nodeMap={};mygraph.nodeMap=nodeMap;
-    for(var i=0;i<graph.nodes.length;i++){
-        graph.nodes[i].edges={};nodeMap[graph.nodes[i].id]= graph.nodes[i];
-    }
-    for(var i=0;i<graph.links.length;i++){
-        var link=graph.links[i];
-		graph.nodeMap[link.source].edges[link.target]=link; //keys i edges are the nodes' id, not index
-		graph.nodeMap[link.target].edges[link.source]=link; 
-    }
+/*
+//this is the server-generated data
+
+//extra data for lat/lon
+var geonames={};var cities={};
+var promises=[];
+promises.push(d3.csv("data/GeoLite2-City-Blocks-IPv4.csv"));
+promises.push(d3.csv("data/GeoLite2-City-Locations-en.csv"));
+Promise.all(promises).then(([data1,data2])=>{
+	for(var i=0;i<data2.length;i++){
+		if(cities[data2[i].city_name]){cities[data2[i].city_name].push(data2[i])}
+		else{cities[data2[i].city_name]=[data2[i]]}
+		geonames[data2[i].geoname_id]=data2[i];
+	}
+	for(var i=0;i<data1.length;i++){
+		if(data1[i].geoname_id in geonames){Object.assign(geonames[data1[i].geoname_id],data1[i]);}
+		
+	}
 	
-  var link = svg.append("g")
-      .attr("class", "links")
-    .selectAll("line")
-    .data(graph.links)
-    .enter().append("line")
-      .attr("stroke-width", function(d) { return Math.sqrt(1); });
+}).then(()=>{d3.json("data.json").then(function(data) {showGraph(data)})});
+*/
 
-	var hoverTimeout=null;
-  var node = svg.append("g")
-      .attr("class", "nodes")
-    .selectAll("circle")
-    .data(graph.nodes)
-    .enter().append("circle")
-      .attr("r", 5)
-      .attr("fill", function(d) { return color(1); })
-      .call(d3.drag()
-          .on("start", dragstarted)
-          .on("drag", dragged)
-          .on("end", dragended))
-    .on('dblclick', connectedNodes)
-    .on('click',nodeClicked)
-    .on('mouseover', (d)=>{tip.detailed=false;var target=d3.event.target;tip.show(d,target);if(hoverTimeout){clearTimeout(hoverTimeout);}hoverTimeout=setTimeout(()=>{tip.detailed=true;tip.show(d,target);},700);})
-    .on('mousemove', (d)=>{var target=d3.event.target;tip.show(d,target);if(hoverTimeout){clearTimeout(hoverTimeout);}hoverTimeout=setTimeout(()=>{tip.detailed=true;tip.show(d,target);},700);})
-	.on('mouseout', (d)=>{tip.detailed=false;tip.hide(d);if(hoverTimeout){clearTimeout(hoverTimeout);hoverTimeout=null;}}); 
-  nodeSelection=node,linkSelection=link;
-  node.append("title")
-      .text(function(d) { return d.id; });
-
-  simulation
-      .nodes(graph.nodes)
-      .on("tick", ticked);
-
-  simulation.force("link")
-      .links(graph.links);
-
-  var g = svg.append("g")
-    .attr("class", "everything");
-
-	svg.on("click",()=>{clearPath()});
-
-var selectedNode=null;
-function nodeClicked(d){
+/*
+d3.csv("data/cities-full.csv").then((data)=>{
+	for(var i=0;i<data.length;i++){
+		if(data[i].continent_code!="EU")continue;
+		geonames[data[i].geoname_id]=data[i];
+		if(cities[data[i].city_name]){cities[data[i].city_name].push(data[i])}
+		else{cities[data[i].city_name]=[data[i]]}
+	}
 	
+}).then(()=>{d3.json("data.json").then(function(data) {showGraph(data)})});
+*/
+//new data
+var countrycodes={};d3.tsv("data/countrycode.tsv").then((data)=>{for(let i=0;i<data.length;i++){countrycodes[data[i].Code]=data[i].Country;}});
+d3.json("data2.json").then(function(data) {showGraph(data)});
+
+//map
+var projection = d3.geoMercator();
+var path = d3.geoPath().projection(projection);
+var graticule = d3.geoGraticule();
+var mapSelection=svg.append("g").attr("class","map");
+mapSelection.append("defs").append("path")
+    .datum({type: "Sphere"})
+    .attr("id", "sphere")
+    .attr("d", path);
 	
-}
-  // function zoom_actions(){
-  //   g.attr("transform", d3.event.transform)
-  // }
-
-  function ticked() {
-    link
-        .attr("x1", function(d) { return d.source.x; })
-        .attr("y1", function(d) { return d.source.y; })
-        .attr("x2", function(d) { return d.target.x; })
-        .attr("y2", function(d) { return d.target.y; });
-
-    node
-        .attr("cx", function(d) { return d.x; })
-        .attr("cy", function(d) { return d.y; });
-  }
-
-  //Toggle stores whether the highlighting is on
-  var toggle = 0;
-
-  //Create an array logging what is connected to what
-  var linkedByIndex = {};
-  for (i = 0; i < graph.nodes.length; i++) {
-    linkedByIndex[i + "," + i] = 1;
-  };
-  graph.links.forEach(function (d) {
-    linkedByIndex[d.source.index + "," + d.target.index] = 1;
-  });
-
-  function dragstarted(d) {
-    if (!d3.event.active) simulation.alphaTarget(0.3).restart();
-    d.fx = d.x;
-    d.fy = d.y;
-  }
-
-  function dragged(d) {
-    d.fx = d3.event.x;
-    d.fy = d3.event.y;
-  }
-
-  function dragended(d) {
-    if (!d3.event.active) simulation.alphaTarget(0);
-    d.fx = null;
-    d.fy = null;
-  }
-
-  function neighboring(a, b) {
-      return linkedByIndex[a.index + "," + b.index];
-  }
-
-  function connectedNodes() {
-    if (toggle == 0) {
-      //Reduce the opacity of all but the neighbouring nodes
-      d = d3.select(this).node().__data__;
-      node.style("opacity", function (o) {
-        return neighboring(d, o) | neighboring(o, d) ? 1 : 0.1;
-      });      
-      link.style("opacity", function (o) {
-        return d.index==o.source.index | d.index==o.target.index ? 1 : 0.1;
-      }); 
-      //Reduce the op    
-      toggle = 1;
-    } else {
-          //Put them back to opacity=1
-      node.style("opacity", 1);
-      link.style("opacity", 1);
-      toggle = 0;
-    }
-  }
-  
-  function shortestPath(graph, start, targets)
-  {
-    let distances={};
-    let prev={};
-    let bestDistance=Infinity;
-    let bestTarget=null;
-    if(typeof targets !="object"){let temp={};temp[targets]=true;targets=temp;}
-    let queue=buckets.PriorityQueue((a,b)=>{if(distances[a]>distances[b])return 1;else {if(distances[a]<distances[b])return -1; else return 0;}});
-    distances[start]=0;queue.add(start);
-    
-    while(!queue.isEmpty()){
-      let node=queue.dequeue();
-      if(distances[node]>=bestDistance){break;}
-      for(neighbor in graph.nodes[node].edges){
-        if(((neighbor in distances)==false)||(distances[neighbor]>distances[node]+1)){
-          distances[neighbor]=distances[node]+1;prev[neighbor]=node;queue.add(neighbor);
-          if(neighbor in targets){if(bestDistance>distances[neighbor]){bestDistance=distances[neighbor];bestTarget=neighbor;}}
-          
-        }
-      }
-    }
-    if(bestTarget!==null){
-      let path=[];let current=bestTarget;while(current!=start){path.unshift(current);current=prev[current];}
-      path.unshift(start);
-      return path;
-    }
-  }
-  
+mapSelection.append("path")
+    .datum(graticule)
+    .attr("class", "graticule")
+    .attr("d", path);
+	
+d3.json("data/world-50m.json").then(function(world) {
+  var countries = topojson.feature(world, world.objects.countries).features,
+      neighbors = topojson.neighbors(world.objects.countries.geometries);
+	mapSelection.selectAll(".country")
+      .data(countries)
+    .enter().insert("path", ".graticule")
+      .attr("class", "country")
+      .attr("d", path)
+			.style("fill", "#fff");
 });
+
+
+/*
+//layouts
+layoutMenu=d3.select("#layout-menu");
+var layoutMenuSelection=layoutMenu.selectAll("div");
+
+d3.json("layout-algorithms.json").then(function(data) {
+	layoutMenuSelection=layoutMenuSelection.data(data);
+	layoutMenuSelection.exit().remove();
+	layoutMenuSelection=layoutMenuSelection.enter().append("div").attr("class","layout-algorithm").on("click",function(algorithmName){
+		console.log(algorithmName);
+		d3.json("",{method:"POST",header:new Headers({ "Content-Type": "application/json"}),body:JSON.stringify({type:"layout",algorithm:algorithmName})})
+			.then(function (res){
+				updateLayout(res);
+			});
+	});
+	layoutMenuSelection=layoutMenu.selectAll("div");
+	layoutMenuSelection.selectAll("p").remove();
+	layoutMenuSelection.append("p").text((x)=>x);
+});
+
+*/
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
   

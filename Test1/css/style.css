@@ -1,11 +1,12 @@
 .links line {
     stroke: #999;
     stroke-opacity: 0.6;
+	stroke-width: 1px;
 }
 
 .nodes circle {
     stroke: #fff;
-    stroke-width: 1.5px;
+    stroke-width: 0.1px;
 }
 
 d3-tip {
@@ -13,25 +14,32 @@ d3-tip {
     color: black;
 }
 
-line {
-    stroke: #999;
-    stroke-opacity: 0.6;
+path.marker{
+    stroke: #0c0;
+	fill:url(#gradient-glass);;
+    stroke-width: 1.3px;
 }
-circle {
-    stroke: #fff;
-    stroke-width: 1.5px;
+path.marker::after{
+	position: absolute;
+	
+	content: "\25BC";
+	display: block;
+	color: #0084ff;
+	font-size: 16px;
+	top: 50%;
+	right: 1.5em;
+	transform: translateY(-50%);
 }
-
-
 circle.selected  {
     stroke: #4f4;
+	fill:#0e0;
 	stroke-opacity: .9;
-	stroke-width:2px;
+	stroke-width:0.1px;
 }
 circle.not-selected  {
     stroke: #fff;
 	opacity: .3;
-	stroke-width:2px;
+	stroke-width:0.1px;
 }
 line.selected  {
     stroke: #4f4;
@@ -41,17 +49,43 @@ line.selected  {
 
 line.neighbor {
     stroke: #090;
-	stroke-opacity: .4;
-	stroke-width:1px;
+	stroke-opacity: .7;
+	stroke-width:2px;
 }
 line.not-selected  {
     stroke: #999;
-    opacity: .3;
+    opacity: .5;
 }
+
+
+path {fill:#fff;stroke: #444;color:#fff;}
+.graticule {
+      fill: none;
+      stroke: #bbb;
+      stroke-width: .5px;
+      stroke-opacity: .5;
+}
+	
+
 #chart {
         position: fixed;
         left: 0px;
         right: 0px;
         top: 0px;
         bottom: 0px;
+		background-color:#d5e5f5;
       }
+#layout-menu {
+    position: absolute;
+    top: 10%;
+	left:0%;
+    width: 100px;
+	max-height:80%;
+	overflow:scroll;
+    text-align: center;
+    color: slategrey;
+	background-color:black;
+    opacity: 0.7;
+    font-size: 14px;
+	scroll
+}

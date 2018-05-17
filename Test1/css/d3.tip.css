@@ -6,6 +6,8 @@
   color: #fff;
   border-radius: 2px;
   pointer-events: none;
+  transition:opacity 0.2s;
+  max-width:25%;
 }
 
 /* Creates a small triangle extender for the tooltip */
