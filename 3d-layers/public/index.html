@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0,user-scalable=no" />
+		<title>Star Sculptor - Graph Sandbox</title>
+
+		<link id="style-main" rel="stylesheet" type="text/css" href="css/main.css" />
+		<link id="style-main" rel="stylesheet" type="text/css" href="css/dat.gui.css" />
+		
+		<script id="nodesVertexShader" type="x-shader/x-vertex">
+			attribute vec3 customColor;
+			attribute float size;
+			varying vec3 vColor;
+			void main() 
+			{
+				vColor = customColor; // set color associated to vertex; use later in fragment shader
+				vec4 mvPosition = modelViewMatrix * vec4( position, 1.0 );
+				// option (1): draw particles at constant size on screen
+				// gl_PointSize = size;
+				// option (2): scale particles as objects in 3D space
+				gl_PointSize = 10.0 * ( 300.0 / length( mvPosition.xyz ) )*size;
+				gl_Position = projectionMatrix * mvPosition;
+			}
+		</script>
+
+		<script id="nodesFragmentShader" type="x-shader/x-fragment">
+			uniform sampler2D texture;
+			uniform float time;
+			varying vec3 vColor; // colors associated to vertices; assigned by vertex shader
+			void main() 
+			{
+				// calculates a color for the particle
+				gl_FragColor = vec4( vColor,1);
+				// sets particle texture to desired color
+				gl_FragColor = gl_FragColor * texture2D( texture, gl_PointCoord );
+				}
+		</script>
+		<script id="linksVertexShader" type="x-shader/x-vertex">
+			attribute vec3 customColor;
+			attribute vec3 coord;
+			attribute float brightness;
+			varying vec3 vColor;
+			varying vec3 pixelCoord;
+			varying float bright;
+			void main() 
+			{
+				vColor = customColor; // set color associated to vertex; use later in fragment shader
+				vec4 mvPosition = modelViewMatrix * vec4( position, 1.0 );
+				// option (1): draw particles at constant size on screen
+				// gl_PointSize = size;
+				// option (2): scale particles as objects in 3D space
+				//gl_PointSize = 1.0 * ( 300.0 / length( mvPosition.xyz ) );
+				gl_Position = projectionMatrix * mvPosition;
+				pixelCoord = coord;
+				bright = brightness;
+			}
+		</script>
+
+		<script id="linksFragmentShader" type="x-shader/x-fragment">
+			uniform sampler2D texture;
+			uniform float time;
+			varying vec3 vColor; // colors associated to vertices; assigned by vertex shader
+			varying vec3 pixelCoord;
+			varying float bright;
+			float pi=3.141592653;
+			void main() 
+			{
+				gl_FragColor = vec4(normalize(vColor)*bright/max(1.0,pixelCoord.z/200.0),1);//normalize(vColor)?
+				gl_FragColor = gl_FragColor
+				*min(1.0-pow(abs(pixelCoord.y),(pixelCoord.z/100.0)+0.5),max(pow(0.01,abs(pixelCoord.y))*0.3,pow(0.001,abs(pixelCoord.y))*1.23*(pixelCoord.z/170.0+0.5)))//soft edge width, meant to look sharp when close and thicker when far away
+				*sin( min((1.0-abs(pixelCoord.x))*20.0,pi/2.0));//soft end points, to avoid additive blending messing up the node shapes
+			}
+		</script>
+		<script id="playersVertexShader" type="x-shader/x-vertex">
+			attribute vec3 customColor;
+			attribute float size;
+			varying vec3 vColor;
+			void main() 
+			{
+				vColor = customColor; // set color associated to vertex; use later in fragment shader
+				vec4 mvPosition = modelViewMatrix * vec4( position, 1.0 );
+				// scale particles as objects in 3D space but stop when too close
+				gl_PointSize = 10.0 * ( 300.0 / (length( mvPosition.xyz )<150.0?150.0:length( mvPosition.xyz )) )*size;
+				gl_Position = projectionMatrix * mvPosition;
+			}
+		</script>
+
+		<script id="playersFragmentShader" type="x-shader/x-fragment">
+			uniform sampler2D texture;
+			uniform float time;
+			varying vec3 vColor; // colors associated to vertices; assigned by vertex shader
+			void main() 
+			{
+				// calculates a color for the particle
+				gl_FragColor = vec4( vColor*0.7,1);
+				float x=gl_PointCoord.x-0.5;
+				float y=gl_PointCoord.y-0.5;
+				
+				//calculate expanding circle effect
+				float s=((mod(time*5.0,0.25)-0.1)*1.2);//+8.0)/6.0;
+				gl_FragColor = gl_FragColor * pow(0.000001,abs(x*x+y*y-s))*(1.0-abs(x*x+y*y)*4.0);
+				//gl_FragColor = gl_FragColor * pow(0.5,abs(gl_PointCoord.x*gl_PointCoord.x+gl_PointCoord.y*gl_PointCoord.y-s))//texture2D( texture, gl_PointCoord );
+				}
+		</script>
+		
+		
+		<script type="text/javascript" src="socket.io/socket.io.js"></script>
+		<script type="text/javascript" src="js/d3.js"></script>
+		<script type="text/javascript" src="js/colors.js"></script>
+		<script type="text/javascript" src="js/ntc.js"></script>
+		<script type="text/javascript" src="js/dat.gui.js"></script>
+		<script type="text/javascript" src="js/three.min.js"></script>
+		<script type="text/javascript" src="js/EffectComposer.js"></script>
+		<script type="text/javascript" src="js/RenderPass.js"></script>
+		<script type="text/javascript" src="js/ShaderPass.js"></script>
+		<script type="text/javascript" src="js/CopyShader.js"></script>
+		<script type="text/javascript" src="js/FXAAShader.js"></script>
+		
+		<script type="text/javascript" src="js/stats.js"></script>
+		<script type="text/javascript" src="js/controls.js"></script>
+		<script type="text/javascript" src="js/Cloth.js"></script>
+		<script type="text/javascript" src="js/d3-force-3d.js"></script>
+		<script type="text/javascript" src="js/3d-force-graph.js"></script>
+		
+
+	</head>
+
+	<body>
+		<div id="canvas" height="100%" width="100%"></div>
+		
+		<div id="start-menu" class="panel" >
+			<span style="font-size: 24px;padding:10px;">Choose Graph</span>
+		</div>
+
+		<div id="graph-menu" class="panel">
+			<p id="graph-name">(Graph title)</p>
+			<div id="graph-info" >
+				<p id="graph-desc">(Graph description)</p>
+				<table id="graph-layers">
+					<thead>
+						<tr id="title"></tr>
+						<tr id="columns"></tr>
+					</thead>
+					<tbody></tbody>
+				</table>
+			</div>
+			<button id="double-vertices">Double |V|</button>
+			<button id="randomize-graph">Randomize</button>
+			<button id="half-vertices">Half |V|</button>
+			</br>
+			<button id="reset-view">Reset view</button>
+			<button id="randomize-layout">Randomize layout</button>
+			</br>
+			<button id="expand-selection">Expand selection</button>
+			<p id="selected-vertices"></p>
+			<div id="item-bar-container">
+				<div id= "item-bar-title"><p> Saved graphs </p><button id="new-item-button"> + </button></div>
+				
+				<div id="item-bar" >
+				
+					
+				</div>
+			</div>
+		</div>
+		
+		<div id="style-menu" class="panel">
+		
+		</div>
+		<div id="selecting-region" ></div>
+		
+		
+		<script type="text/javascript">
+		document.body.onselectstart = function(e) { if (e.target.nodeName != "INPUT" && e.target.nodeName != "TEXTAREA") { e.preventDefault(); return false; } return true; }
+		document.ontouchmove = function(e){
+		
+             if(e.target.nodeName != "DIV" && e.target.nodeName != "P" && e.touches.length>1) { e.preventDefault(); return false; } return true;
+		}
+var canvas,	
+	socket,
+	startMenu,
+	abilityMenu,
+	graphNameElement,selectingRegion,
+	searchRadius,
+	worldLayout,worldsLayout,activeLayout;
+
+var world={},worlds={},cards;
+
+function init() {
+	
+	startMenu=d3.select("#start-menu");
+	abilityMenu=d3.select("#ability-menu");
+	canvas=d3.select("#canvas").node();
+	graphNameElement=document.getElementById("graph-name");
+	graphNameElement.onclick = ()=>socket.emit("exit world");
+    graphNameElement.ontouchend = ()=>socket.emit("exit world");
+	selectedVerticesElem=document.getElementById("selected-vertices");
+	selectingRegion=document.getElementById("selecting-region");
+	document.getElementById("half-vertices").onclick=(()=>{graph3d.halfVertices();});
+	document.getElementById("double-vertices").onclick=(()=>{graph3d.doubleVertices();});
+	document.getElementById("randomize-graph").onclick=(()=>{graph3d.randomizeGraph();});
+	document.getElementById("reset-view").onclick=(()=>{graph3d.resetView();});
+	document.getElementById("randomize-layout").onclick=(()=>{graph3d.randomizeLayout();});
+	document.getElementById("expand-selection").onclick=(()=>{graph3d.expandSelection();});
+	socket = io.connect("/", {  transports: [ "websocket","flashsocket","polling" ] });
+	//window.addEventListener("resize", onResize, false);
+	socket.on("connect", function(data) {
+		graph3d.localPlayerID=socket.id;
+		console.log("Connected to socket server");
+	});
+	socket.on("disconnect", function(data) {
+		console.log("Disconnected from socket server");
+	});
+
+	socket.on("choose world",function(worlds){
+		graph3d.worldTemplates=worlds;//for input binding
+		var ws=startMenu.style("display","block").selectAll("div").data(Object.values(worlds)).enter().append("div").attr("class","world-template").on("click",function(data){socket.emit("choose world",data.id);});
+		ws.append("p").text(function(data){return data.name}).attr("class","world-name");
+		ws.append("p").text(function(data){return data.info});
+	});
+	socket.on("enter world", function(data) {
+		startMenu.style('display','none');world=data;graph3d.show(world);graph3d.resetView();graph3d.saveGraph(true);
+	});
+	
+
+	//todo
+	socket.on("add" ,graph3d.addObject );
+	socket.on("delete" ,graph3d.deleteObject );
+	socket.on("update" ,graph3d.updateObject );
+	
+	socket.on("test" ,console.log );
+	socket.on("win" ,function(data){alert("You have won!");socket.emit("exit world");} );
+	
+	canvas.innerHTML = '';
+
+	init3d(canvas);
+	
+	
+}
+
+init();
+////////////////////////////////////////////////
+
+
+		</script>
+	</body>
+</html>
